@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-func commandMap(config *config) error {
-	mapArea, err := GetLocations(config.Next)
+func commandMap(config *config, args ...string) error {
+	mapArea, err := GetLocations(config.Cache, config.Next)
 	if err != nil {
 		return err
 	}
@@ -22,12 +22,12 @@ func commandMap(config *config) error {
 	return nil
 }
 
-func commandMapb(config *config) error {
+func commandMapb(config *config, args ...string) error {
 	if config.Previous == nil {
 		return errors.New("you're on the first page")
 	}
 
-	mapArea, err := GetLocations(config.Previous)
+	mapArea, err := GetLocations(config.Cache, config.Previous)
 	if err != nil {
 		return err
 	}

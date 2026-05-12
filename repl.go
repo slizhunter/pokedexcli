@@ -5,10 +5,18 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/slizhunter/pokedexcli/internal/pokecache"
 )
 
 func startRepl() {
-	config := config{Next: nil, Previous: nil} // Initializes the config struct with empty URLs
+	// Initializes the config struct with empty URLs and a cache with 5-minute expiration
+	config := config{
+		Next:     nil,
+		Previous: nil,
+		Cache:    pokecache.NewCache(5 * time.Minute),
+	}
 
 	//Sets up ability to scan for user input
 	scanner := bufio.NewScanner(os.Stdin)
@@ -29,7 +37,7 @@ func startRepl() {
 		//Checks if the first word of the cleaned input matches a command and executes it if it does
 		command, exists := getCommands()[cleanedInput[0]]
 		if exists {
-			err := command.callback(&config)
+			err := command.callback(&config, cleanedInput[1:]...) // Passes the config and the remaining cleaned input as arguments to the command's callback function
 			if err != nil {
 				fmt.Printf("Error executing command: %v\n", err)
 			}
@@ -44,29 +52,6 @@ func startRepl() {
 func cleanInput(text string) []string {
 	newText := strings.Fields(strings.ToLower(text))
 	return newText
-}
-
-// Struct to define and describe command types
-type cliCommand struct {
-	name        string
-	description string
-	callback    func(*config) error // Function to execute when the command is called
-}
-
-// Struct to contain the Next and Previous URLs to paginate through location areas
-type config struct {
-	Next     *string // URL for the next page of location areas
-	Previous *string // URL for the previous page of location areas
-}
-
-type Location struct {
-	Count    int     `json:"count"`
-	Next     *string `json:"next"`
-	Previous *string `json:"previous"`
-	Results  []struct {
-		Name string `json:"name"`
-		URL  string `json:"url"`
-	} `json:"results"`
 }
 
 // Map of supported commands
@@ -92,5 +77,24 @@ func getCommands() map[string]cliCommand {
 			description: "Displays the names of the previous 20 map locations",
 			callback:    commandMapb,
 		},
+		"explore": {
+			name:        "explore",
+			description: "Explores a specific location area. Syntax: explore [location name]",
+			callback:    commandExplore,
+		},
 	}
+}
+
+// Struct to define and describe command types
+type cliCommand struct {
+	name        string
+	description string
+	callback    func(*config, ...string) error // Function to execute when the command is called
+}
+
+// Struct to contain configuration data for the REPL, including pagination URLs and a shared cache for API responses
+type config struct {
+	Next     *string         // URL for the next page of location areas
+	Previous *string         // URL for the previous page of location areas
+	Cache    pokecache.Cache // Shared cache for API responses
 }
